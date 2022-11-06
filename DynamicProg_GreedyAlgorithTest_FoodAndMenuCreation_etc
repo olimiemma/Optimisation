@@ -1,0 +1,279 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Nov  2 10:41:59 2022
+
+@author: legend
+"""
+import random
+#import sys
+#sys.getrecursionlimit()
+#sys.setrecursionlimit()
+
+#---knapscak problem is inherentily exponential
+
+class Food(object):
+    """
+    Let’s look at a program that we can use to decide what to order
+Take in some foof names, their value to you(how much you like them) and their calories. goal is too choose best value for less calories  """
+
+    def __init__(self, n, v, w):
+        self.name = n
+        self.value = v
+        self.calories = w
+    def getValue(self):
+        return self.value
+    def getCost(self):#how many calories will each food cost you
+        return self.calories
+    def density(self): #Ratio of the value to the expense i.e in this case the ratio of Value / Calories
+        return self.getValue()/self.getCost()
+    def __str__(self):
+        return self.name + ': <' + str(self.value)
+        + ', ' + str(self.calories) + '>'
+
+
+#--------------------------------Build Menu of Foods-----------------------------------------------------------'
+
+
+def buildMenu(names, values, calories):
+    '''
+   Creates Menu,Takes in 3 lists of equal length(names, value, calories)
+   '''
+    menu = []
+    for i in range(len(values)): #cz they'e all same length, could be len of any
+        menu.append(Food(names[i], values[i], calories[i])) #creates values for the items/args in Food class, one a time. Adds in each value for name , value and calories as we go through the loop
+    return menu
+
+
+#---------------------------------Greedy algorithm------------------------------------------------------------------------
+    
+def greedy(items, maxCost, keyFunction):
+    """Assumes items a list, maxCost >= 0,
+    keyFunction maps elements of items to numbers"""
+    itemsCopy = sorted(items, key = keyFunction,
+    reverse = True)
+    result = []
+    totalValue, totalCost = 0.0, 0.0
+    for i in range(len(itemsCopy)):
+        if (totalCost+itemsCopy[i].getCost()) <= maxCost:
+            result.append(itemsCopy[i])
+            totalCost += itemsCopy[i].getCost()
+            totalValue += itemsCopy[i].getValue()
+    return (result, totalValue)
+
+
+#-----------------------------------Using greedy--------------------------------------------------------------
+    
+
+def testGreedy(items, constraint, keyFunction):
+    taken, val = greedy(items, constraint, keyFunction)
+    print('Total value of items taken =', val)
+    for item in taken:
+        print('        ', item)
+
+
+#---------------------------------- better test/-Using greedy--------------------------------------------------------------
+    
+def testGreedys(foods, maxUnits):
+    print('Use greedy by value to allocate', maxUnits,
+    'calories')
+    testGreedy(foods, maxUnits, Food.getValue)
+    print('\nUse greedy by cost to allocate', maxUnits,
+          'calories')
+    testGreedy(foods, maxUnits,
+               lambda x: 1/Food.getCost(x))
+    print('\nUse greedy by density to allocate', maxUnits,
+          'calories')
+    testGreedy(foods, maxUnits, Food.density)
+
+names = ['wine', 'beer', 'pizza', 'burger', 'fries',
+'cola', 'apple', 'donut', 'cake']
+values = [89,90,95,100,90,79,50,10]
+calories = [123,154,258,354,365,150,95,195]
+foods = buildMenu(names, values, calories)
+testGreedys(foods, 750)
+
+
+#------------------------Using Search Tree approach (max val) its a, better approach than greedy---but tested on small exaamples 268 is a small humber , how does it old up on big ones-------growth ix expones------------------------    
+
+def maxVal(toConsider, avail): #avail .
+    """Assumes toConsider a list of items,
+    avail a weight (avail is our constrait)/weight
+    Returns a tuple of the total value of a
+    solution to 0/1 knapsack problem and
+    the items of that solution""”
+    avail. The amount of space STILL AVAILABLE, cz teh function is going to be called recursively, so Avil will be chaanging on each recall, . so will to consider by the way
+    toConsider. Those items that nodes higher up in the
+    tree (corresponding to earlier calls in the recursive
+    call stack) "have not yet considered---NoTICE THE NOT YET CONSIDERED"""
+    
+    if toConsider == [] or avail == 0:
+        result = (0, ())
+    elif toConsider[0].getCost() > avail:
+        #explore riight branch only
+        result = maxVal(toConsider[1:], avail)
+    else:
+        nextItem = toConsider[0]
+        #Explore left branch
+        withVal, withToTake = maxVal(toConsider[1:], avail - nextItem.getCost())
+        
+        withVal += nextItem.getValue()
+        #Explore right branch
+        withoutVal, withoutToTake = maxVal(toConsider[1:], avail)
+        #choose better branch
+        if withVal > withoutVal:
+            result = (withVal, withToTake + (nextItem,))
+        else:
+            result = (withoutVal, withoutToTake)
+    return result
+
+"""
+Search Tree Worked Great
+Gave us a better answer
+Finished quickly
+But 2^8 is not a large number
+◦ We should look at what happens when we have a more
+extensive menu to choose from
+"""
+
+
+
+#-------------test max val, better approach than greedy, uses search tree aproach------------------------------    
+
+def testMaxVal(foods, maxUnits, printItems=True):
+    print("Use search tree to allocate", maxUnits,"Calories")
+    val,taken =maxVal(foods, maxUnits)
+    print ("Total value of items taken=", val)   
+    if printItems:
+        for item in taken:
+            print("  ", item)
+
+
+names = [ 'wine', 'beer', 'pizza', 'burger', 'fries', 'coke', 'apple', 'donut'] #Foods
+values  = [89, 90, 30,50, 90, 79, 90, 10] #Value
+calories= [123, 154, 258, 354, 365, 150, 95, 195] #calories
+foods=buildMenu(names,values, calories)
+
+testGreedys(foods, 750)
+print (" ")
+testMaxVal(foods, 750)
+
+
+
+#------------building a larger menu , we use random module---------------------------------------------------
+
+def buildLargeMenu(numItems, maxVal, maxCost):
+    items = []
+    for i in range(numItems):
+        items.append(Food(str(i),
+            random.randint(1, maxVal),
+            random.randint(1, maxCost)))
+    return items
+"""for numItems in (5, 10, 15, 20, 25, 30, 35, 40, 45):
+    items = buildLargeMenu(numItems, 90, 250)
+   testMaxVal(items, 750, False)
+"""
+
+
+
+
+    
+#-----------using Memoisation-- way faster solution than all then above esp on large menus, which the search treee approach sucked at--------------------WITHOUT dynamic programming the algorithms to solve knapssack are mainly exponential
+
+    
+def fastMaxVal(toConsider, avail, memo={}): #uses dynamic programming/memoisation -----its  a  pseudo-polynomial algorithm
+    """Assumes toConsider a list of subjects,
+    avail a weight (avail is our constrait)/weight
+    memo supplied by recursive calls
+    Returns a tuple of the total value of a
+    solution to 0/1 knapsack problem and
+    the subjects of that solution 
+    """
+    if (len(toConsider), avail) in memo:
+        result =memo[len(toConsider),avail]
+  
+    elif toConsider == [] or avail == 0:
+        result = (0, ())
+    elif toConsider[0].getCost() > avail:
+        #explore right branch only
+        result = fastMaxVal(toConsider[1:], avail, memo)
+    else:
+        nextItem = toConsider[0]
+        #Explore left branch
+        withVal, withToTake = fastMaxVal(toConsider[1:], avail - nextItem.getCost(), memo)
+        
+        withVal += nextItem.getValue()
+        #Explore right branch
+        withoutVal, withoutToTake = fastMaxVal(toConsider[1:], avail, memo)
+        #choose better branch
+        if withVal > withoutVal:
+            result = (withVal, withToTake + (nextItem,))
+        else:
+            result = (withoutVal, withoutToTake)
+            memo[(len(toConsider), avail)]=result
+    return result
+
+
+#---testing fastMaxVal/memoisation approach---Added the alogrith parameter , that helps us the same testing function to test  the diff algorithms used to solve the knapsacck problem
+    
+def testMaxVal(food, maxUnits, algorithm, printItems=True):
+    print ("Menu Contains", len(food), "items")
+    print ("Use search tree to allocate", maxUnits, "calories")
+    val, taken = algorithm(food, maxUnits)
+    if printItems:
+        print("Total Value of Items taken =", val)
+        for item in taken:
+            print("  " , item)
+            
+            
+#---Building a large menu example--------Un comment this to run above------------------------------
+            
+#for numItems in (5, 10, 15, 20, 25, 30, 35, 40, 45, 512):
+#    items = buildLargeMenu(numItems, 90, 250)
+#    testMaxVal(items, 750, fastMaxVal, False) #when tested on maxVal, (change the 3rd element here(fastMaxVal) to maxVal), you willsee how slow search trees are on  large menus. cant evn go to up to 40 of our 50 items in menu
+#    
+#    
+    
+    
+    
+    
+#Changed code to keep track of number of calls when fastMaxval is used/memoisation is used - so you see how many times it was called
+            
+def countingFastMaxVal(toConsider, avail, memo = {}):
+    """Assumes toConsider a list of subjects, avail a weight
+         memo supplied by recursive calls
+       Returns a tuple of the total value of a solution to the
+         0/1 knapsack problem and the subjects of that solution"""
+    global numCalls
+    numCalls += 1
+    
+    if (len(toConsider), avail) in memo:
+        result = memo[(len(toConsider), avail)]
+    elif toConsider == [] or avail == 0:
+        result = (0, ())
+    elif toConsider[0].getCost() > avail:
+        #Explore right branch only
+        result = countingFastMaxVal(toConsider[1:], avail, memo)
+    else:
+        nextItem = toConsider[0]
+        #Explore left branch
+        withVal, withToTake =\
+                 countingFastMaxVal(toConsider[1:],
+                            avail - nextItem.getCost(), memo)
+        withVal += nextItem.getValue()
+        #Explore right branch
+        withoutVal, withoutToTake = countingFastMaxVal(toConsider[1:],
+                                                avail, memo)
+        #Choose better branch
+        if withVal > withoutVal:
+            result = (withVal, withToTake + (nextItem,))
+        else:
+            result = (withoutVal, withoutToTake)
+    memo[(len(toConsider), avail)] = result
+    return result
+    
+for numItems in (2, 4, 8, 16, 32, 64, 128, 256, 512, 1024):
+    numCalls = 0
+    items = buildLargeMenu(numItems, 90, 250)
+    testMaxVal(items, 750, countingFastMaxVal, False)
+    print('Number of calls =', numCalls)
